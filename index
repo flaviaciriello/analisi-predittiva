@@ -1,91 +1,58 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-from prophet import Prophet
-import plotly.graph_objects as go
-from tabulate import tabulate
+template_html = """
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Previsione Bandi Autobus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #005fa3;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        main {
+            margin: 40px auto;
+            max-width: 960px;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 0.2em;
+        }
+        p {
+            font-size: 1em;
+            line-height: 1.5;
+        }
+        .grafico-container {
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Previsione Bandi Autobus</h1>
+        <p>Analisi storica e previsioni dei bandi annuali</p>
+    </header>
+    <main>
+        <p>Il grafico sottostante mostra l'evoluzione del numero di bandi pubblicati ogni anno, insieme alla previsione per i prossimi 10 anni basata su Prophet.</p>
 
-# === 1. Carica e prepara i dati ===
-df = pd.read_excel("C:/Users/flaci/Desktop/TED_03-07-2025 (1).xlsx")
-df['Data di pubblicazione'] = pd.to_datetime(df['Data di pubblicazione'], errors='coerce')
-df = df.dropna(subset=['Data di pubblicazione'])
-df['Anno'] = df['Data di pubblicazione'].dt.year
-
-# === 2. Conta i bandi per anno ===
-bandi_per_anno = df.groupby('Anno').size().reset_index(name='count')
-
-# === 3. Prepara dati per Prophet ===
-df_prophet = bandi_per_anno.rename(columns={'Anno': 'ds', 'count': 'y'})
-df_prophet['ds'] = pd.to_datetime(df_prophet['ds'], format='%Y')
-
-# === 4. Crea e addestra modello Prophet ===
-model = Prophet(yearly_seasonality=True)
-model.fit(df_prophet)
-
-# === 5. Crea dataframe per i prossimi 10 anni ===
-future = model.make_future_dataframe(periods=10, freq='Y')
-forecast = model.predict(future)
-
-# === 6. Crea tabella previsioni future ===
-ultimo_anno_storico = df_prophet['ds'].max().year
-previsioni_futuro = forecast[forecast['ds'].dt.year > ultimo_anno_storico][['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
-previsioni_futuro['Anno'] = previsioni_futuro['ds'].dt.year
-previsioni_futuro = previsioni_futuro[['Anno', 'yhat', 'yhat_lower', 'yhat_upper']]
-
-# === 7. Stampa tabella con tabulate ===
-print("\n Tabella previsioni future:\n")
-print(tabulate(previsioni_futuro.round(2), headers='keys', tablefmt='fancy_grid', showindex=False))
-
-# === 8. Crea grafico interattivo ===
-
-# 1. Traccia dati storici
-storico = go.Scatter(
-    x=df_prophet['ds'],
-    y=df_prophet['y'],
-    mode='markers+lines',
-    name='Dati storici',
-    line=dict(color='royalblue'),
-    marker=dict(size=6)
-)
-
-# 2. Traccia previsione
-previsione = go.Scatter(
-    x=forecast['ds'],
-    y=forecast['yhat'],
-    mode='lines',
-    name='Previsione',
-    line=dict(color='darkblue', width=2)
-)
-
-# 3. Traccia intervallo di confidenza
-confidenza = go.Scatter(
-    x=forecast['ds'].tolist() + forecast['ds'][::-1].tolist(),
-    y=forecast['yhat_upper'].tolist() + forecast['yhat_lower'][::-1].tolist(),
-    fill='toself',
-    fillcolor='rgba(135, 206, 250, 0.3)',
-    line=dict(color='rgba(255,255,255,0)'),
-    hoverinfo="skip",
-    name='Intervallo di confidenza'
-)
-
-# 4. Crea figura con tutte le tracce
-fig = go.Figure(data=[confidenza, storico, previsione])
-
-# 5. Imposta layout (titoli, dimensioni, stile)
-fig.update_layout(
-    title='Previsione annuale numero bandi per autobus',
-    xaxis_title='Anno',
-    yaxis_title='Numero bandi',
-    width=800,    # ← cambia qui per dimensioni personalizzate
-    height=500,
-    template='plotly_white'
-)
-
-# 6. Mostra grafico
-fig.show()
-
-
-import plotly.graph_objects as go
-
-# (Assumendo che tu abbia già creato 'fig' come in precedenza)
-
-fig.write_html("grafico_bandi_interattivo.html")
+        <div class="grafico-container">
+            <!--GRAFICO_PLOTLY-->
+        </div>
+    </main>
+</body>
+</html>
+"""
